@@ -118,45 +118,46 @@ is based on two ideas:
 
   1. New ExpressionNode base class is added to Django.
   2. Anything with resolve_expression() and refs_aggregate() methods can be
-     used as expressions. In particular F-objects aren't ExpressionNode
-     instances, they just resolve to one.
+     used as expressions, as long as resolve_expression returns an
+     implementation of ExpressionNode. In particular, F-objects aren't
+     ExpressionNode instances, they just resolve to one.
 
 The basic funtionality of the ExpressionNode class is as follows:
 
   - The class defines the base methods and attributes needed by all
     expressions. The set of methods and attributes is known as the SQL
-    expresisons API. The API isn't fully documented.
+    expression API.
   - A new CombinableMixin is added to the ORM. This mixin allows objects to
     be combined with +, - and similar operators by implementing `__add__`,
     `__sub__` and similar methods.
   - Combining two combinables returns a Expression instances. The
     Expression instance combines two nodes with an operator.
-  - A bit surprisingly F-object isn't a subclass of ExpressionNode. F-
-    objects resolve to expressions which refer directly a database column
-    or other existing expression. For example F('somecol') resolves to a
+  - A bit surprisingly F-objects aren't subclasses of ExpressionNode, but they
+    resolve to expressions which refer directly to a database column or other
+    existing expression. For example F('somecol') resolves to a
     Col instance referencing database column "somecol". F('max_id') resolves
-    to existing aggregate Max('id') (where qs.annotate(max_id=Max('id')) must
-    have been run first).
+    to the left hand side of an existing aggregate Max('id') where
+    qs.annotate(max_id=Max('id')) must have been defined first.
   - Python values resolve to ValueNode instances. That is, F('foobar') + 10
     will resolve to Col('foobar') + Value(10).
   - The expression returned from resolve_expression is added to the query.
-  - Aggregates will be a subclass of Expression.
-  - All Expressions can be used in .annotate() calls. This includes other
-    expressions than aggregates.
+  - Aggregates will be subclasses of Expression.
+  - All Expressions can be used in .annotate() calls. This includes expressions
+    other than aggregates.
 
-As and example, lets consider the case of F('foo') + F('bar'). The `__add__`
+As an example, lets consider the case of F('foo') + F('bar'). The `__add__`
 method of F('foo') will create a new Expression(F('foo'), '+', F('bar'))
-expression. When the expression's resolve_expression method is called,
+expression. When the expressions resolve_expression method is called,
 the call tree looks like::
 
     expression.resolve_expression(query):
-        self.lhs.resolve_expression(query)
-        self.rhs.resolve_expression(query)
+        self.lhs.resolve_expression(query)  # F('foo')
+        self.rhs.resolve_expression(query)  # F('bar')
 
 The lhs and rhs nodes will resolve their respective database columns from
 the query. End result would be Expression(Col('foo'), '+', Col('bar')).
 
-Execution would happen through calling as_sql(). Each col returns just
+Execution would happen by calling as_sql(). Each col returns just
 "table_ref"."colname", and the BinaryExpression then combines them with +::
 
     expression.as_sql(compiler, connection):
@@ -165,13 +166,13 @@ Execution would happen through calling as_sql(). Each col returns just
         return connection.ops.combine_sql(
             self.operator, sql)
 
-When compared to the call tree produced by Django's current code, it is
-immediately obvious the new expressions are much easier to understand.
+When compared to the call tree produced by Djangos current code, it is
+immediately obvious that new expressions are much easier to understand.
 
 There is currently very limited support for combining arbitrary types of
 expressions (for example, doing F('textfield') + F('anothertext') doesn't
 resolve to CONCAT() SQL). This proposal doesn't aim to solve arbitrary type
-combination problem (though doing so should be possible later on). It is also
+combination problem (though doing so should be possible later on). But it is
 possible to write a custom ConcatNode::
 
     class ConcatNode(Expression):
