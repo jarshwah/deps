@@ -216,16 +216,16 @@ Possible problems
 =================
 
 The main identified problem is that SQLEvaluator class has remained mostly
-stable from 1.0 days on (if not earlier). Similarly, the implementation of
-aggregates has remained mostly stable from the addition of aggregation support
-in the ORM. The suggested changes could cause problems for users who have
-relied on this private API.
+stable from version 1.1. Similarly, the implementation of aggregates has
+remained mostly stable from the addition of aggregation support in the ORM.
+The suggested changes could cause problems for users who have relied on this
+private API.
 
 Possible ways to make the transition easier include:
 
   - Keep backwards compatibility for SQLEvaluator
   - Add django.db.models.sql.deprecations and django.db.models.deprecations
-    modules. These would containt for example old-style implementations of F()
+    modules. These would contain, for example, old-style implementations of F()
     objects, aggregates and other changed object classes.
 
 Adding a backwards compatibility module will require a lot of work. Users have
