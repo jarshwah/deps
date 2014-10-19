@@ -272,6 +272,15 @@ Implementation
 Pull request https://github.com/django/django/pull/2496/ implements all suggested
 changes in this DEP.
 
+Related Tickets
+===============
+
+- 14030: Use F() objects in aggregates(), annotates() and values()
+  https://code.djangoproject.com/ticket/14030
+
+- 11305: Support for "Conditional Aggregates"
+  https://code.djangoproject.com/ticket/11305
+
 Copyright
 =========
 
