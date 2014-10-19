@@ -194,21 +194,23 @@ Rationale of the changes
 This chapter summarizes why the changes are necessary for the ORM. Currently
 the following things aren't possible:
 
-  - The current coding doesn't allow one to write custom expressions through
-    the public API. While it is possible to write custom expressions using
+  - The current code doesn't allow one to write custom expressions through
+    a public API. While it is possible to write custom expressions using
     private API it is painful to do so (need to alter the global SQLEvaluator
     class).
   - Aggregates aren't expressions. For that reason Sum('foo') + Sum('bar')
     isn't possible.
-  - Expressions can't be used in .annotate() calls.
+  - Arbitrary expressions can't be used in .annotate() calls. Annotate only
+    supports aggregates.
   - The current code is hard to understand.
 
-The new expressions API allows writing custom expressions based on public
+The new expressions API allows writing custom expressions based on a public
 API, the call graphs are easier to understand, aggregates are expression
-subclasses and annotation of expressions is fully supported by the ORM.
-Expressions can't be used directly in other calls yet, but it will be
-possible to extend the expressions work to allow
-`.order_by(NullsLast(F('height') / F('weight')))` for example.
+subclasses and annotating a query with arbitrary expressions is fully supported
+by the ORM. Expressions can't be used directly in other calls yet, but it is
+possible, and has been demonstrated, that support for order_by can be achieved::
+
+  .order_by(NullsLast(F('height') / F('weight')))
 
 Possible problems
 =================
