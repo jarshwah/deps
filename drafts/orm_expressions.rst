@@ -8,17 +8,13 @@ DEP X: New implementation for ORM expressions
 Abstract
 ========
 
-This DEP details a new and simplified way to build query expressions for the
-ORM. The new way allows one to write 3rd party expressions with the public
-API. The aim is to also simplify the internal implementation of the
-expressions.
+This DEP details a new and simplified way of building query expressions for the
+ORM. The aim is to simplify the internal implementation of expressions, and to
+detail a public API that will allow user defined expressions.
 
-Query expressions refer to a collection of methods and attributes an object
-must have. These methods include as_sql() for producing the query string,
-output_field so that the ORM knows what kind of results one should expect
-from the expression and a large list of similar methods and attributes.
-Currently the interface of an query expression isn't exactly defined
-anywhere else than in code.
+Query expressions allow SQL constructs to be used from Django. F() expressions
+and aggregate functions are examples of existing expressions, but they each use
+their own internal implementations.
 
 Current Implementation
 ======================
@@ -130,7 +126,7 @@ The basic funtionality of the ExpressionNode class is as follows:
     be combined with +, - and similar operators by implementing `__add__`,
     `__sub__` and similar methods.
   - Combining two combinables returns a Expression instances. The
-    Expression instance combines two nodes with an operator. 
+    Expression instance combines two nodes with an operator.
   - A bit surprisingly F-object isn't a subclass of ExpressionNode. F-
     objects resolve to expressions which refer directly a database column
     or other existing expression. For example F('somecol') resolves to a
@@ -206,7 +202,7 @@ The new expressions API allows writing custom expressions based on public
 API, the call graphs are easier to understand, aggregates are expression
 subclasses and annotation of expressions is fully supported by the ORM.
 Expressions can't be used directly in other calls yet, but it will be
-possible to extend the expressions work to allow 
+possible to extend the expressions work to allow
 `.order_by(NullsLast(F('height') / F('weight')))` for example.
 
 Possible problems
