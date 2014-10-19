@@ -19,12 +19,12 @@ their own internal implementations.
 Current Implementation
 ======================
 
-Currently Django's ORM splits the expression implementation to two parts:
+Currently Django's ORM splits expression implementations into two parts:
 
   - Public facing API: for example django.db.models.expressions.F()
   - Evaluation: for example django.db.models.sql.expressions.SQLEvaluator
 
-Lets consider as an example the way F('foo') + F('bar') is implemented.
+Lets consider as an example the way that F('foo') + F('bar') is implemented.
 
 First, F('foo') + F('bar') creates the following datastructure::
 
@@ -33,27 +33,27 @@ First, F('foo') + F('bar') creates the following datastructure::
         F('foo')
         F('bar')
 
-The leafs are usually F() objects (they could be other types of ExpressionNodes,
-too), the internal nodes are usually plain ExpressionNodes. Below the created
-datastructure is called simply the F-expression.
+The leaf nodes are usually F() objects (they could be other types of
+ExpressionNodes too) and the internal nodes are usually plain ExpressionNodes.
+We call the result of this computation an F-expression.
 
 When the F-expression created by F('foo') + F('bar') is given to .filter(),
 the resolution of the F-expression happens in a couple of stages. First, the
-node is added to the query. The steps when adding to query are:
+node is added to the query. The steps when adding to the query are:
 
-  - Query.prepare_lookup_value() detects that the given value is instance of
+  - Query.prepare_lookup_value() detects that the given value is an instance of
     django.db.models.expressions.ExpressionNode
-  - An SQLEvaluator is created, the created SQLEvaluator object has references
-    to both the F-expression and the query the F-expression is added to.
-  - The creation of SQLEvaluator calls the F-expression's prepare() method.
-    The prepare method has the created evaluator and Query as parameters.
-  - The F-expression's prepare() method calls back to the evaluator's
-    prepare_node() or prepare_leaf() method
+  - A SQLEvaluator is created which has references to both the F-expression
+    and the query the F-expression is added to.
+  - The creation of SQLEvaluator calls the F-expressions prepare() method.
+    The prepare method takes the evaluator and Query as parameters.
+  - The F-expressions prepare() method calls back to the evaluators
+    prepare_node() or prepare_leaf() method.
   - The prepare_node() method is called for internal expression nodes
-    (ExpressionNode('+') in the example). The evaluator's prepare_node()
-    method calls then prepare() for each children (F('foo') and F('bar')
+    (ExpressionNode('+') in the example). The evaluators prepare_node()
+    method then calls prepare() for each child (F('foo') and F('bar')
     in the example).
-  - The prepare_leaf() method is called from leaf node's prepare() method.
+  - The prepare_leaf() method is called from each leaf nodes prepare() method.
     The prepare method is responsible for resolving references and doing
     other essential setup. For example F('foo') would ask the query to
     resolve the 'foo' reference to something that can be used in the query.
@@ -71,9 +71,9 @@ node is added to the query. The steps when adding to query are:
                             # SQLEvaluator.prepare_leaf() is called with
                             # node=F('foo') or node=F('bar')
 
-The execution of a node happens in similar fashion: the compiler calls as_sql()
-of the SQLEvaluator, then SQLEvaluator calls evaluate() of the node, which
-calls evaluate_node() or evaluate_leaf() similarly to above.
+The execution of a node happens in similar fashion. The compiler calls as_sql()
+of the SQLEvaluator, then SQLEvaluator calls evaluate() on the node, which
+calls evaluate_node() or evaluate_leaf() similar to prepare() above.
 
 The problem with this setup is that the evaluator needs to know exactly how to
 add a node into a query, and it needs to generate SQL for the node. In
@@ -82,28 +82,32 @@ not the node, and that the evaluator has to know every possible node type used
 in ORM queries.
 
 To add new expressions, the evaluator and expression nodes need to be modified
-in pair. For example, DateModifierNode needs a method
-evaluate_date_modifier_node() in the evaluator. So, to implement a new node,
+in tandem. For example, DateModifierNode needs a method
+evaluate_date_modifier_node() in the evaluator. So, to implement a new expression,
 one needs to alter the SQLEvaluator class. Unfortunately this is practically
 impossible because the SQLEvaluator is private API, and the SQLEvaluator is
-global. So, every node type needs to be supported by the same SQLEvaluator
-class. If multiple new node types were to be added to the ORM, then all the
-new node types would need to alter the same SQLEvaluator class.
+global. So every node type needs to be supported by the same SQLEvaluator
+class.
 
 Another complexity of the current approach is found from the evaluator <->
-expression dance. As seen before the call graph is somewhat complex, making
+expression dance. As seen above, the call graph is somewhat complex making
 it hard to understand what exactly is happening.
 
 Finally, if one wants to mix ExpressionNode functionality with other SQL
-expressions (like aggregates) the current way doesn't allow for that
-(aggregates aren't ExpressionNodes at all).
+expressions (like aggregates) the current way doesn't allow for that.
+Aggregates aren't ExpressionNodes at all, but they implement a similar but
+disparate flow.
 
-The reasoning why the SQLEvaluator <-> ExpressionNode dance is performed is
+The reasoning why the SQLEvaluator <-> ExpressionNode flow is performed is the
 ability to customize the generated query string by implementing a custom
-Evaluator. For example MongoDB ORM backend could have MongoEvaluator that
+Evaluator. For example, MongoDB ORM backend could have MongoEvaluator that
 knows how to add F() objects to query, and how to produce a valid query string
 for F('foo') + F('bar'). Thus the user can use the same public API for
-MongoDB.
+MongoDB. The custom evaluator would need to change in lockstep with the existing
+evaluator if it wanted to support the same public expressions.
+
+It should be noted that the Evaluator API isn't documented and isn't public, and
+so it can't be relied upon between versions.
 
 Improvement proposal
 ====================
