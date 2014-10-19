@@ -144,6 +144,8 @@ The basic funtionality of the ExpressionNode class is as follows:
   - Aggregates will be subclasses of Expression.
   - All Expressions can be used in .annotate() calls. This includes expressions
     other than aggregates.
+  - Different output can be generated on a per-backend basis by defining an
+    `as_{vendorname}` method, which takes precedence over the `as_sql` method.
 
 As an example, lets consider the case of F('foo') + F('bar'). The `__add__`
 method of F('foo') will create a new Expression(F('foo'), '+', F('bar'))
