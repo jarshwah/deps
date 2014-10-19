@@ -241,28 +241,30 @@ generating the correct query string for any node type used in the project.
 
 There are a couple of ideas which should work equally well for the new approach.
 
-The first approach is that whenever the NoSQL ORM sees an expression it
+The first approach would rely on the NoSQL backend adding an `as_{vendorname}`
+method to all of the expressions that it wanted to customise. Whether this was
+done at startup (monkey patching) or by overriding the `compile` method of the
+Compiler and providing the implementation at run-time would be up to the
+maintainer.
+
+The second approach is that whenever the NoSQL ORM sees an expression it
 converts it to new type of specialized expression (for example, Concat is
-converted to NoSQLConcat). This could be made even easier if we add
-Query.convert_expression(expression) method. This method is called always for
-any expression used in ORM queries. The default implementation will return
-self, but for NoSQL ORM the method could return a converted node. Converting
+converted to NoSQLConcat). This could be made even easier if we added
+Query.convert_expression(expression) method. This method would always be called
+for any expression used in ORM queries. The default implementation will return
+the passed expression. The NoSQL ORM could return a converted node. Converting
 the node will require knowledge of the internal structure of the node, but
 that same problem exists when SQLEvaluator prepares or generates a query
 string for given node.
 
-The second approach is similar to the first approach, but instead of
+The third approach is similar to the second, but instead of
 generating different node types, it wraps the node with a generic
 NoSQLExpressionWrapper. The NoSQLExpressionWrapper does conversions
 between the ORM and the original node implementation.
 
-The third approach is to just use the as_vendor approach for the nodes. This
-is the easiest approach to implement, but without trying it is hard to say
-if this approach is sufficient.
-
-In any case the first two approaches are sufficient to implement similar
-functionality than what SQLEvaluator gives. Of course, existing projects
-(django-nonrel for example) will need to be updated.
+In any case the second and third approaches are sufficient to implement similar
+functionality to what SQLEvaluator gives. Of course, existing projects
+(django-nonrel for example) will still need to be updated.
 
 Implementation
 ==============
